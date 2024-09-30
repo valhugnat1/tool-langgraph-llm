@@ -20,6 +20,7 @@ from langgraph.graph.message import add_messages
 from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.prebuilt import ToolNode, tools_condition
+from starlette.responses import StreamingResponse
 
 # Load environment variables and init craft sdk
 load_dotenv()
@@ -225,20 +226,67 @@ def query_process(query_text, model_name, stream=False):
      return ""
   else: 
     for event in llm_app.stream({"messages": [("user", query_text)]}):
+
         for value in event.values():
-            print(value)
+
             if 'messages' in value :
                 last_text_return = value["messages"][-1].content
+                add_args = value["messages"][-1].additional_kwargs
+
+                if "tool_calls" in value["messages"][-1].additional_kwargs:
+                    print ("Tool calling :", add_args["tool_calls"][0]["function"])
+                else:
+                    print ("Result : ", last_text_return) # ["tool_calls"][0]["function"]
 
 
   return last_text_return
+
+
+
+
+
+
+async def _stream_response(text_resp: str, model_name):
+    # let's pretend every word is a token and return it over time
+
+    model = ChatOpenAI(model=model_name)
+    i=0
+    
+    inputs = {"messages": [("human", text_resp)]}
+    async for event in llm_app.astream_events(inputs, version="v2"):
+        kind = event["event"]
+        tags = event.get("tags", [])
+        # filter on the custom tag
+        if kind == "on_chat_model_stream" :
+            data = event["data"]
+
+
+            if data["chunk"].content:
+                # Empty content in the context of OpenAI or Anthropic usually means
+                # that the model is asking for a tool to be invoked.
+                # So we only print non-empty content
+                print(str(data["chunk"].content), end="", flush=True)
+
+                chunk = {
+                    "id": i,
+                    "object": "chat.completion.chunk",
+                    "created": time.time(),
+                    "model": model_name,
+                    "choices": [{"delta": {"content": str(data["chunk"].content) + " "}}],
+                }
+                i+=1
+                yield f"data: {json.dumps(chunk)}\n\n"
+    yield "data: [DONE]\n\n"
+
 
 # Chat completion route
 @app.post("/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
 
+    print ("streaming :", request.stream)
+
     if request.stream:
-        raise ValueError("Streaming isn't available on this API")
+        return StreamingResponse(_stream_response(str(request.messages), request.model))
 
     else : 
 
