@@ -16,4 +16,4 @@ flag: France Ton premier jour*
 11h00: Présentation de Scaleway par Stéphanie KOLARIC-MARTELLIERE et présentation de la DRH par un membre de l'équipe
 12h00: Tour des locaux + déjeuner avec ton manager
 14h00: Présentation par l'équipe Product Management, Design et Product Documentation
-*Cet agenda pourrait avoir des modifications.
+Cet agenda pourrait avoir des modifications.
