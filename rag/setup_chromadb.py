@@ -39,6 +39,38 @@ def load_documents(path):
     
     return documents
 
+import os
+from langchain.document_loaders import TextLoader
+
+def load_documents_sub(path):
+    """
+    Recursively load all .txt documents from the specified directory and its subfolders.
+    
+    Args:
+        path (str): The root directory path to start searching for .txt files.
+    
+    Returns:
+        List of Document objects: Loaded .txt documents represented as Langchain Document objects.
+    """
+    documents = []
+    
+    # Walk through the directory tree
+    for root, dirs, files in os.walk(path):
+        for file_name in files:
+            # Check if the file is a .txt file
+            if file_name.endswith('.txt'):
+                # Create the full file path
+                file_path = os.path.join(root, file_name)
+                # Initialize TextLoader for the current file
+                loader = TextLoader(file_path)
+                try:
+                    # Load the document and append to the list
+                    documents.extend(loader.load())
+                except Exception as e:
+                    print(f"Error loading file {file_path}: {e}")
+    
+    return documents
+
 
 
 def split_text(documents: list[Document]):
@@ -99,7 +131,7 @@ def generate_data_store(DATA_PATH):
   """
   Function to generate vector database in chroma from documents.
   """
-  documents = load_documents(DATA_PATH) # Load documents from a source
+  documents = load_documents_sub(DATA_PATH) # Load documents from a source
   chunks = split_text(documents) # Split documents into manageable chunks
   save_to_chroma(chunks) # Save the processed data to a data store
 

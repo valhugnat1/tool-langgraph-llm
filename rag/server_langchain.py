@@ -189,9 +189,11 @@ async def _resp_async_generator(text_resp: str):
 async def chat_completions(request: ChatCompletionRequest):
     if request.messages:
 
+        print(len (request.messages), request.messages[-1])
+
 
         # Let's call our function we have defined
-        _, response_text = query_rag(str(request.messages))
+        _, response_text = query_rag(str(request.messages[-1]))
 
         if request.stream:
             return StreamingResponse(
@@ -199,8 +201,6 @@ async def chat_completions(request: ChatCompletionRequest):
             )
 
         else : 
-
-            print (response_text)
 
             return {
                 "id": "1337",

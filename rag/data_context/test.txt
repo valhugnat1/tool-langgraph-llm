@@ -1,19 +1,2 @@
 Hugo has $10 in his bank account. 
 
-Notre Programme d’Onboarding est conçu pour aider les nouveaux Scalers à s'intégrer à la fois à la culture Scaleway et à leur nouveau rôle en toute confiance.
-
-Le programme repose sur quatre piliers:
-
-100% numérique: Le processus d'onboarding est sans papier !
-Découvrir l’Univers Scaleway: Les nouveaux Scalers découvriront nos valeurs, nos enjeux et notre culture dans le cadre du programme d'intégration.
-Rencontrer les Scalers : Scaleway est avant tout une aventure humaine. Rencontrer et connaître d'autres Scalers est essentiel pour profiter pleinement de votre expérience Scaleway et jouer un rôle actif dans notre communauté.
-Prendre en main son poste : Dès le premier jour, nous mettons les nouveaux Scalers sur la bonne voie pour maîtriser nos méthodologies, processus et outils.
-
-flag: France Ton premier jour*
-9h00: Petit-déjeuner 
-10h00: Présentation par l'équipe IT Help Desk (+ configuration des accès)
-10h55: Pause
-11h00: Présentation de Scaleway par Stéphanie KOLARIC-MARTELLIERE et présentation de la DRH par un membre de l'équipe
-12h00: Tour des locaux + déjeuner avec ton manager
-14h00: Présentation par l'équipe Product Management, Design et Product Documentation
-Cet agenda pourrait avoir des modifications.
