@@ -1,3 +1,5 @@
+### Import and setup ###
+
 import asyncio
 import json
 import time
@@ -31,12 +33,21 @@ import os
 from dotenv import load_dotenv
 import os
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response
+
+import logging
+
+# Configure the logging system (you can customize this part to suit your needs)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()  # This loads the environment variables from the .env file
 
 # Now you can access the variables like this:
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
+
+
+### data model ###
 
 
 
@@ -48,48 +59,22 @@ Answer the question based on the above context: {question}
 """
 
 
-def query_rag(query_text):
-  """
-  Query a Retrieval-Augmented Generation (RAG) system using Chroma database and OpenAI.
-  Args:
-    - query_text (str): The text to query the RAG system with.
-  Returns:
-    - formatted_response (str): Formatted response including the generated text and sources.
-    - response_text (str): The generated response text.
-  """
-  # YOU MUST - Use same embedding function as before
-  embedding_function = OpenAIEmbeddings()
+class Message(BaseModel):
+    role: str
+    content: str
 
-  # Prepare the database
-  db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
-  
-  # Retrieving the context from the DB using similarity search
-  results = db.similarity_search_with_relevance_scores(query_text, k=10)
 
-  # Check if there are any matching results or if the relevance score is too low
-  if len(results) == 0 or results[0][1] < 0.7:
-    print(f"Unable to find matching results.")
+class ChatCompletionRequest(BaseModel):
+    model: Optional[str] = "mock-gpt-model"
+    messages: List[Message]
+    max_tokens: Optional[int] = 512
+    temperature: Optional[float] = 0.1
+    stream: Optional[bool] = False
 
-  # Combine context from matching documents
-  context_text = "\n\n - -\n\n".join([doc.page_content for doc, _score in results])
- 
-  # Create prompt template using context and query text
-  prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-  prompt = prompt_template.format(context=context_text, question=query_text)
-  
-  # Initialize OpenAI chat model
-  model = ChatOpenAI(model="gpt-4o-mini")
 
-  # Generate response text based on the prompt
-  response_text = model.predict(prompt)
- 
-   # Get sources of the matching documents
-  sources = [doc.metadata.get("source", None) for doc, _score in results]
- 
-  # Format and return response including generated text and sources
-  formatted_response = f"Response: {response_text}\nSources: {sources}"
-  return formatted_response, response_text
 
+
+app = FastAPI(title="OpenAI-compatible API")
 
 
 # Middleware to log requests with incorrect paths
@@ -103,12 +88,6 @@ class LogIncorrectPathsMiddleware(BaseHTTPMiddleware):
         return response
 
 
-
-
-app = FastAPI(title="OpenAI-compatible API")
-
-
-
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -119,10 +98,67 @@ app.add_middleware(
 )
 
 
+### Function ###
+
+
+def embeddings_fct (query_text): 
+  embedding_function = OpenAIEmbeddings()
+  db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+
+  results = db.similarity_search_with_relevance_scores(query_text, k=10)
+  if len(results) == 0 or results[0][1] < 0.7:
+    print(f"Unable to find matching results.")
+
+  context_text = "\n\n - -\n\n".join([doc.page_content for doc, _score in results])
+  prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+  prompt = prompt_template.format(context=context_text, question=query_text)
+
+  return prompt, results
+
+
+
+def query_rag(query_text):
+  
+  prompt, results = embeddings_fct(query_text)
+  
+  model = ChatOpenAI(model="gpt-4o-mini")
+  
+  response_text = model.predict(prompt)
+  sources = [doc.metadata.get("source", None) for doc, _score in results]
+  formatted_response = f"Response: {response_text}\nSources: {sources}"
+  return formatted_response, response_text
+
+
+
+
+async def _resp_async_generator(request: str):
+  
+    # Enable streaming in the model call
+    model = ChatOpenAI(model="gpt-4o-mini", streaming=True)
+
+    i = 0 
+    for chunk in model.stream(str(request.messages[-1])):
+        
+        response_chunk = chunk.content
+
+        chunk = {
+            "id": i,
+            "object": "chat.completion.chunk",
+            "created": time.time(),
+            "model": "llama-3.1-8b-rag",
+            "choices": [{"delta": {"content": response_chunk}}],
+        }
+        i += 1
+        yield f"data: {json.dumps(chunk)}\n\n"
+        
+    yield "data: [DONE]\n\n"
+
+
+### Server fastapi ###
+#### Middleware ####
+
 app.add_middleware(LogIncorrectPathsMiddleware)
 
-
-from fastapi.responses import Response
 
 # Middleware to set Referrer-Policy to strict-origin-when-cross-origin
 @app.middleware("http")
@@ -134,23 +170,6 @@ async def set_referrer_policy(request: Request, call_next):
     
     return response
 
-# data models
-class Message(BaseModel):
-    role: str
-    content: str
-
-
-class ChatCompletionRequest(BaseModel):
-    model: Optional[str] = "mock-gpt-model"
-    messages: List[Message]
-    max_tokens: Optional[int] = 512
-    temperature: Optional[float] = 0.1
-    stream: Optional[bool] = False
-
-import logging
-
-# Configure the logging system (you can customize this part to suit your needs)
-logging.basicConfig(level=logging.INFO)
 
 # Middleware to log the query parameters of each request
 @app.middleware("http")
@@ -166,41 +185,24 @@ async def log_query_params(request: Request, call_next):
     return response
 
 
-
-async def _resp_async_generator(text_resp: str):
-    # let's pretend every word is a token and return it over time
-    tokens = text_resp.split(" ")
-
-    for i, token in enumerate(tokens):
-        print (token)
-        chunk = {
-            "id": i,
-            "object": "chat.completion.chunk",
-            "created": time.time(),
-            "model": "llama-3.1-8b-rag",
-            "choices": [{"delta": {"content": token + " "}}],
-        }
-        yield f"data: {json.dumps(chunk)}\n\n"
-        await asyncio.sleep(0.1)
-    yield "data: [DONE]\n\n"
+#### Route ####
 
  
 @app.post("/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
     if request.messages:
 
-        print(len (request.messages), request.messages[-1])
-
-
-        # Let's call our function we have defined
         _, response_text = query_rag(str(request.messages[-1]))
 
         if request.stream:
+
+
             return StreamingResponse(
-                _resp_async_generator(response_text), media_type="application/x-ndjson"
+                _resp_async_generator(request), media_type="text/event-stream"
             )
 
         else : 
+            _, response_text = query_rag(str(request.messages[-1]))
 
             return {
                 "id": "1337",
@@ -235,6 +237,13 @@ def health_check():
 @app.get("/")
 def read_root():
     return {"message": "Hello, World!"}
+
+
+
+
+
+### Main ###
+
 
 if __name__ == "__main__":
     import uvicorn
