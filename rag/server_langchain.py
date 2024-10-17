@@ -101,7 +101,7 @@ app.add_middleware(
 ### Function ###
 
 
-def embeddings_fct (query_text): 
+def context_rag_fct (query_text): 
   embedding_function = OpenAIEmbeddings()
   db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
 
@@ -119,7 +119,7 @@ def embeddings_fct (query_text):
 
 def query_rag(query_text):
   
-  prompt, results = embeddings_fct(query_text)
+  prompt, results = context_rag_fct(query_text)
   
   model = ChatOpenAI(model="gpt-4o-mini")
   
@@ -136,8 +136,10 @@ async def _resp_async_generator(request: str):
     # Enable streaming in the model call
     model = ChatOpenAI(model="gpt-4o-mini", streaming=True)
 
+    prompt, results = context_rag_fct(str(request.messages[-1]))
+
     i = 0 
-    for chunk in model.stream(str(request.messages[-1])):
+    for chunk in model.stream(prompt):
         
         response_chunk = chunk.content
 
