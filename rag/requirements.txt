@@ -6,3 +6,12 @@ python-dotenv
 uvicorn
 chromadb
 tiktoken
+lunary
+langchain_chroma
+langchain_openai
+langchain_postgres 
+psycopg2
+langchainhub 
+boto3 
+unstructured 
+transformers

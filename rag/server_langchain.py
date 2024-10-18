@@ -1,53 +1,38 @@
 ### Import and setup ###
 
-import asyncio
 import json
 import os  # Importing os module for operating system functionalities
-import shutil  # Importing shutil module for high-level file operations
 import time
 from typing import List, Optional
 
 from dotenv import load_dotenv  # Importing dotenv to get API key from .env file
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.chat_models import ChatOpenAI  # Import OpenAI LLM
-from langchain.document_loaders.pdf import (
-    PyPDFDirectoryLoader,
-)  # Importing PDF loader from Langchain
-from langchain.embeddings import (
-    OpenAIEmbeddings,
-)  # Importing OpenAI embeddings from Langchain
-from langchain.schema import Document  # Importing Document schema from Langchain
-from langchain.text_splitter import (
-    RecursiveCharacterTextSplitter,
-)  # Importing text splitter from Langchain
-from langchain.vectorstores.chroma import (
-    Chroma,
-)  # Importing Chroma vector store from Langchain
-from langchain_community.document_loaders import TextLoader
+
+from langchain_community.chat_models import ChatOpenAI
+# from langchain_community.embeddings import OpenAIEmbeddings
+# from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+import logging
+from lunary import LunaryCallbackHandler 
+
+
+load_dotenv()  # This loads the environment variables from the .env file
+
 # Path to the directory to save Chroma database
 CHROMA_PATH = "chroma"
-import logging
-import os
 
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
-
-# from langchain_openai import ChatOpenAI
-# from lunary import LunaryCallbackHandler
-# handler = LunaryCallbackHandler()
-
+handler = LunaryCallbackHandler(app_id=os.getenv("LUNARY_PUBLIC_KEY"))
 
 # Configure the logging system (you can customize this part to suit your needs)
 logging.basicConfig(level=logging.INFO)
-
-load_dotenv()  # This loads the environment variables from the .env file
 
 # Now you can access the variables like this:
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -98,28 +83,23 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "*"
-    ],  # Allows all origins, replace "*" with specific domains if needed
+    ], 
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
-
 
 ### Function ###
 
-
 def context_rag_fct(query_text):
-    # embedding_function = OpenAIEmbeddings()
-    embedding_function = OpenAIEmbeddings(
-        openai_api_base="https://api.scaleway.ai/v1",
-        openai_api_key=os.getenv("SCW_SECRET_KEY"),
-    )
+
+    embedding_function = OpenAIEmbeddings()
 
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
 
     results = db.similarity_search_with_relevance_scores(query_text, k=10)
     if len(results) == 0 or results[0][1] < 0.7:
-        print(f"Unable to find matching results.")
+        print("Unable to find matching results.")
 
     context_text = "\n\n - -\n\n".join([doc.page_content for doc, _score in results])
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
@@ -135,22 +115,25 @@ def query_rag(query_text):
         openai_api_base="https://api.scaleway.ai/v1",
         openai_api_key=os.getenv("SCW_SECRET_KEY"),
         model_name="llama-3.1-8b-instruct",
-    )  # , callbacks=[handler]
+        callbacks=[handler]
+    )  
 
-    response_text = model.predict(prompt)
+    response_text = model.invoke(prompt)
     sources = [doc.metadata.get("source", None) for doc, _score in results]
     formatted_response = f"Response: {response_text}\nSources: {sources}"
     return formatted_response, response_text
 
 
 async def _resp_async_generator(request: str):
+
     # Enable streaming in the model call
     model = ChatOpenAI(
         openai_api_base="https://api.scaleway.ai/v1",
         openai_api_key=os.getenv("SCW_SECRET_KEY"),
         model_name="llama-3.1-8b-instruct",
         streaming=True,
-    )  # , callbacks=[handler]
+        callbacks=[handler]
+    ) 
 
     prompt, results = context_rag_fct(str(request.messages[-1]))
 
@@ -241,7 +224,6 @@ async def models_list():
                 "owned_by": "organization-owner",
             },
         ],
-        "object": "list",
     }
 
 
