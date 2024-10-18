@@ -4,38 +4,61 @@ import json
 import os  # Importing os module for operating system functionalities
 import time
 from typing import List, Optional
+from pydantic import BaseModel
 
-from dotenv import load_dotenv  # Importing dotenv to get API key from .env file
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-
-from langchain_community.chat_models import ChatOpenAI
-# from langchain_community.embeddings import OpenAIEmbeddings
-# from langchain_community.vectorstores import Chroma
-from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 
+from langchain_community.chat_models import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
+from langchain_postgres import PGVector
+from langchain import hub
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
+from dotenv import load_dotenv
 import logging
-from lunary import LunaryCallbackHandler 
+from lunary import LunaryCallbackHandler
 
+import psycopg2
+
+
+### Setup monitoring & logs ###
 
 load_dotenv()  # This loads the environment variables from the .env file
 
-# Path to the directory to save Chroma database
-CHROMA_PATH = "chroma"
-
 handler = LunaryCallbackHandler(app_id=os.getenv("LUNARY_PUBLIC_KEY"))
 
-# Configure the logging system (you can customize this part to suit your needs)
 logging.basicConfig(level=logging.INFO)
 
-# Now you can access the variables like this:
-openai_api_key = os.getenv("OPENAI_API_KEY")
+### Load Retriver ###
+
+CHROMA_PATH = "chroma"  # old vector DB
+
+conn = psycopg2.connect(
+    database=os.getenv("SCW_DB_NAME"),
+    user=os.getenv("SCW_DB_USER"),
+    password=os.getenv("SCW_DB_PASSWORD"),
+    host=os.getenv("SCW_DB_HOST"),
+    port=os.getenv("SCW_DB_PORT"),
+)
+
+cur = conn.cursor()
+
+embeddings = OpenAIEmbeddings(
+    openai_api_key=os.getenv("SCW_SECRET_KEY"),
+    openai_api_base=os.getenv("SCW_GENERATIVE_APIs_ENDPOINT"),
+    model="sentence-transformers/sentence-t5-xxl",
+    tiktoken_enabled=False,
+)
+
+
+connection_string = f"postgresql+psycopg2://{conn.info.user}:{conn.info.password}@{conn.info.host}:{conn.info.port}/{conn.info.dbname}"
+vector_store = PGVector(connection=connection_string, embeddings=embeddings)
 
 
 ### data model ###
@@ -81,18 +104,16 @@ class LogIncorrectPathsMiddleware(BaseHTTPMiddleware):
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*"
-    ], 
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 ### Function ###
 
-def context_rag_fct(query_text):
 
+def context_rag_fct(query_text):
     embedding_function = OpenAIEmbeddings()
 
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
@@ -115,8 +136,8 @@ def query_rag(query_text):
         openai_api_base="https://api.scaleway.ai/v1",
         openai_api_key=os.getenv("SCW_SECRET_KEY"),
         model_name="llama-3.1-8b-instruct",
-        callbacks=[handler]
-    )  
+        callbacks=[handler],
+    )
 
     response_text = model.invoke(prompt)
     sources = [doc.metadata.get("source", None) for doc, _score in results]
@@ -125,27 +146,32 @@ def query_rag(query_text):
 
 
 async def _resp_async_generator(request: str):
+    global vector_store
 
-    # Enable streaming in the model call
-    model = ChatOpenAI(
-        openai_api_base="https://api.scaleway.ai/v1",
-        openai_api_key=os.getenv("SCW_SECRET_KEY"),
-        model_name="llama-3.1-8b-instruct",
-        streaming=True,
-        callbacks=[handler]
-    ) 
+    llm = ChatOpenAI(
+        base_url=os.getenv("SCW_GENERATIVE_APIs_ENDPOINT"),
+        api_key=os.getenv("SCW_SECRET_KEY"),
+        model="llama-3.1-8b-instruct",
+    )
 
-    prompt, results = context_rag_fct(str(request.messages[-1]))
+    prompt = hub.pull("rlm/rag-prompt")
+    retriever = vector_store.as_retriever()
+
+    rag_chain = (
+        {"context": retriever, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
 
     i = 0
-    for chunk in model.stream(prompt):
-        response_chunk = chunk.content
+    for response_chunk in rag_chain.stream(str(request.messages[-1])):
 
         chunk = {
             "id": i,
             "object": "chat.completion.chunk",
             "created": time.time(),
-            "model": "llama-3.1-8b-rag",
+            "model": request.model, 
             "choices": [{"delta": {"content": response_chunk}}],
         }
         i += 1
