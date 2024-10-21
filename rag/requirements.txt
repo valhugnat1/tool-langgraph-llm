@@ -10,7 +10,7 @@ lunary
 langchain_chroma
 langchain_openai
 langchain_postgres 
-psycopg2
+psycopg2-binary
 langchainhub 
 boto3 
 unstructured 

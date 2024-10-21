@@ -4,23 +4,26 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
 
-# Install any needed packages specified in requirements.txt
+# Install system dependencies first
+RUN apt-get update \
+    && apt-get -y install libpq-dev gcc 
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install Python packages in the virtual environment
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Make port 8001 available to the world outside this container
+# Copy the current directory contents into the container at /app
+COPY . .
+
+# Make port 8000 available to the world outside this container
 EXPOSE 8000
 
 # Define environment variable
 ENV PORT 8000
 
 # Run the application
-# ENTRYPOINT ["uvicorn"]
-# CMD ["server_langchain:app", "--host", "0.0.0.0", "--port", "8000"]
 CMD ["python", "server_langchain.py"]
-
-
-# , "--log-level", "debug"
