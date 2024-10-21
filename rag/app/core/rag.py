@@ -1,5 +1,5 @@
 from langchain_community.chat_models import ChatOpenAI
-from ..core.logging import setup_logging
+from ..core.logging import setup_lunary
 from langchain import hub
 import os
 import time
@@ -49,7 +49,7 @@ def query_rag(query_text):
         base_url=settings.SCW_GENERATIVE_APIs_ENDPOINT,
         model_name="llama-3.1-8b-instruct",
         api_key=settings.SCW_SECRET_KEY,
-        callbacks=[setup_logging()],
+        callbacks=[setup_lunary()],
     )
 
     response_text = model.invoke(prompt)

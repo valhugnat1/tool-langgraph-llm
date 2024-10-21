@@ -37,6 +37,6 @@ def get_vector_store():
     )
     
     return PGVector(
-        connection_string=connection_string,
+        connection=connection_string,
         embeddings=embeddings,
     )
