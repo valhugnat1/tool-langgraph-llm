@@ -3,3 +3,4 @@ __pycache__
 __pycache__/*
 chroma
 data_context
+.venv
