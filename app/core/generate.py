@@ -8,12 +8,12 @@ MODEL_VANILLA = "llama-3.1-8b-instruct"
 
 
 def query_rag(request):
-    llm = MODELService(get_vector_store())
+    llm = MODELService(get_vector_store(), request)
 
     if request.model == MODEL_RAG:
-        return llm.generate_response(request.messages, True)
+        return llm.generate_response(True)
     elif request.model == MODEL_VANILLA:
-        return llm.generate_response(request.messages, False)
+        return llm.generate_response(False)
     else:
         raise Exception("Model not available")
 
@@ -21,11 +21,11 @@ def query_rag(request):
 async def stream_query_rag(request: str):
     global vector_store
 
-    llm = MODELService(get_vector_store())
+    llm = MODELService(get_vector_store(), request)
     i = 0
 
     if request.model == MODEL_RAG:
-        stream = await llm.stream_response(request.messages, True)
+        stream = await llm.stream_response(True)
 
         for response_chunk in stream:
             chunk = {
@@ -41,7 +41,7 @@ async def stream_query_rag(request: str):
         yield "data: [DONE]\n\n"
 
     elif request.model == MODEL_VANILLA:
-        stream = await llm.stream_response(request.messages, False)
+        stream = await llm.stream_response(False)
 
         for response_chunk in stream:
             chunk = {
