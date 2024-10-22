@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 import psycopg2
 from langchain_openai import OpenAIEmbeddings
@@ -6,6 +5,7 @@ from langchain_postgres import PGVector
 from app.core.config import get_settings
 
 settings = get_settings()
+MODEL_EMBEDDINGS="sentence-transformers/sentence-t5-xxl"
 
 @lru_cache()
 def get_database_connection():
@@ -22,8 +22,8 @@ def get_embeddings():
     return OpenAIEmbeddings(
         openai_api_key=settings.SCW_SECRET_KEY,
         openai_api_base=settings.SCW_GENERATIVE_APIs_ENDPOINT,
-        model="sentence-transformers/sentence-t5-xxl",
-        tiktoken_enabled=False,
+        model=MODEL_EMBEDDINGS,
+        tiktoken_enabled=False
     )
 
 @lru_cache()
