@@ -1,5 +1,4 @@
 from langchain_openai import ChatOpenAI
-from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from ..core.config import get_settings
@@ -7,18 +6,27 @@ from ..core.logging import setup_lunary
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain.prompts import PromptTemplate
 
+# Fetches application settings and sets the LLM model to use.
 settings = get_settings()
 MODEL_BASE_LLM = "llama-3.1-8b-instruct"
 
 
 class MODELService:
+    """Service class responsible for handling interaction with a question-answering model."""
+
     def __init__(self, vector_store, request):
+        # Set up the retriever from the vector store and extract the current query from the request.
         self.retriever = vector_store.as_retriever()
         self.engine_ask = request.model
         self.query = str(request.messages[-1].content)
-        self.conv = self.object_to_langchain_conv(request.messages)
-        self.qa_history = self.conv[:-1]
 
+        # Converts the incoming request into a format suitable for LangChain.
+        self.conv = self.object_to_langchain_conv(request.messages)
+        self.qa_history = self.conv[
+            :-1
+        ]  # Exclude the last message as it is the current query.
+
+        # Initializes the ChatOpenAI model with the necessary configuration.
         self.llm = ChatOpenAI(
             base_url=settings.SCW_GENERATIVE_APIs_ENDPOINT,
             api_key=settings.SCW_SECRET_KEY,
@@ -26,6 +34,7 @@ class MODELService:
             callbacks=[setup_lunary()],
         )
 
+        # Custom prompt template for the retrieval-augmented generation (RAG) process.
         template = """You are an assistant for question-answering tasks. 
         Use the following pieces of retrieved context to answer the question. 
         If you don't know the answer, just say that you don't know. 
@@ -38,6 +47,7 @@ class MODELService:
         """
         self.rag_prompt_custom = PromptTemplate.from_template(template)
 
+        # Defines a pipeline that combines the retriever, history, query, prompt template and LLM to generate responses.
         self.rag_template = (
             {
                 "context": self.retriever,
@@ -50,6 +60,7 @@ class MODELService:
         )
 
     def object_to_langchain_conv(self, objects, sys_prompt=""):
+        """Converts a list of messages (objects) to a LangChain-compatible conversation format."""
         langchain_conv = [SystemMessage(content=sys_prompt)] if sys_prompt else []
 
         langchain_conv += [
@@ -61,7 +72,7 @@ class MODELService:
         return langchain_conv
 
     def str_qa_history(self, query):
-        """Convert a list of HumanMessage and AIMessage into a formatted string."""
+        """Convert a list of HumanMessage and AIMessage into a formatted string for use in the prompt."""
         return "\n".join(
             [
                 f"Human: {msg.content}"
@@ -71,20 +82,16 @@ class MODELService:
             ]
         )
 
-
     def generate_response(self, rag_enable=True):
-        
+        """Generates a response (no stream) based on the user's query, either with or without RAG."""
         if rag_enable:
             return self.rag_template.invoke(self.query)
-
         else:
             return self.llm.invoke(self.conv).content
 
-
     async def stream_response(self, rag_enable=True):
-
+        """Generates a streaming response based on the user's query, either with or without RAG."""
         if rag_enable:
             return self.rag_template.stream(self.query)
-
         else:
             return self.llm.stream(self.conv)
