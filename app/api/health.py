@@ -28,5 +28,5 @@ async def read_root():
     return {
         "message": "RAG API Service",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "None"
     }

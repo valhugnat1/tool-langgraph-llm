@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     SCW_BUCKET_NAME: str
     SCW_REGION: str
     SCW_BUCKET_ENDPOINT: str
+    SCW_DEFAULT_ORGANIZATION_ID: str
+    SCW_DEFAULT_PROJECT_ID: str
     
     class Config:
         env_file = ".env"
