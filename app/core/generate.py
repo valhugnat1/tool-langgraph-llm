@@ -1,6 +1,5 @@
 import time
 import json
-from app.services.vector_store import get_vector_store
 from app.services.model import MODELService
 
 MODEL_RAG = "llama-3.1-8b-rag"
@@ -8,7 +7,7 @@ MODEL_VANILLA = "llama-3.1-8b-instruct"
 
 
 def query_rag(request):
-    llm = MODELService(get_vector_store(), request)
+    llm = MODELService(request.messages)
 
     if request.model == MODEL_RAG:
         return llm.generate_response(True)
@@ -19,9 +18,7 @@ def query_rag(request):
 
 
 async def stream_query_rag(request: str):
-    global vector_store
-
-    llm = MODELService(get_vector_store(), request)
+    llm = MODELService(request.messages)
     i = 0
 
     if request.model == MODEL_RAG:

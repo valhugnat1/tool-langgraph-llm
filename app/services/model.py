@@ -5,6 +5,7 @@ from ..core.config import get_settings
 from ..core.logging import setup_lunary
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain.prompts import PromptTemplate
+from app.services.vector_store import VectorStoreDB
 
 # Fetches application settings and sets the LLM model to use.
 settings = get_settings()
@@ -14,14 +15,13 @@ MODEL_BASE_LLM = "llama-3.1-8b-instruct"
 class MODELService:
     """Service class responsible for handling interaction with a question-answering model."""
 
-    def __init__(self, vector_store, request):
+    def __init__(self, messages):
         # Set up the retriever from the vector store and extract the current query from the request.
-        self.retriever = vector_store.as_retriever()
-        self.engine_ask = request.model
-        self.query = str(request.messages[-1].content)
+        self.retriever = VectorStoreDB().vector_store.as_retriever()
+        self.query = str(messages[-1].content)
 
         # Converts the incoming request into a format suitable for LangChain.
-        self.conv = self.object_to_langchain_conv(request.messages)
+        self.conv = self.object_to_langchain_conv(messages)
         self.qa_history = self.conv[
             :-1
         ]  # Exclude the last message as it is the current query.
@@ -82,14 +82,14 @@ class MODELService:
             ]
         )
 
-    def generate_response(self, rag_enable=True):
+    def generate_response(self, rag_enable=False):
         """Generates a response (no stream) based on the user's query, either with or without RAG."""
         if rag_enable:
             return self.rag_template.invoke(self.query)
         else:
             return self.llm.invoke(self.conv).content
 
-    async def stream_response(self, rag_enable=True):
+    async def stream_response(self, rag_enable=False):
         """Generates a streaming response based on the user's query, either with or without RAG."""
         if rag_enable:
             return self.rag_template.stream(self.query)

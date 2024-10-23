@@ -17,7 +17,12 @@ class Settings(BaseSettings):
     SCW_BUCKET_ENDPOINT: str
     SCW_DEFAULT_ORGANIZATION_ID: str
     SCW_DEFAULT_PROJECT_ID: str
-    
+    PGUSER: str
+    PGPASSWORD: str
+    PGHOST: str
+    PGPORT: str
+    PGDATABASE: str
+        
     class Config:
         env_file = ".env"
 

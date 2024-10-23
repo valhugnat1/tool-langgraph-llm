@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .api import chat, health, models
+from .api import chat, health, manage_vectorDB, models
 from .middleware.logging import LogIncorrectPathsMiddleware
 
 def create_application() -> FastAPI:
@@ -19,6 +19,7 @@ def create_application() -> FastAPI:
     app.add_middleware(LogIncorrectPathsMiddleware)
     
     # Include routers
+    app.include_router(manage_vectorDB.router)
     app.include_router(chat.router)
     app.include_router(models.router)
     app.include_router(health.router)

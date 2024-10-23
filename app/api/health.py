@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response, status
-from app.services.vector_store import get_database_connection
+from app.services.vector_store import VectorStoreDB
 
 router = APIRouter()
 
@@ -12,7 +12,7 @@ async def health_check():
 async def database_health_check():
     """Check database connection"""
     try:
-        conn = get_database_connection()
+        conn = VectorStoreDB().conn
         with conn.cursor() as cur:
             cur.execute("SELECT 1")
         return {"status": "healthy", "database": "connected"}
