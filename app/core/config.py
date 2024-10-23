@@ -2,11 +2,6 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
-    SCW_DB_NAME: str
-    SCW_DB_USER: str
-    SCW_DB_PASSWORD: str
-    SCW_DB_HOST: str
-    SCW_DB_PORT: str
     SCW_SECRET_KEY: str
     SCW_GENERATIVE_APIs_ENDPOINT: str
     LUNARY_PUBLIC_KEY: str
