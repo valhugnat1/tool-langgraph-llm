@@ -2,7 +2,7 @@ import time
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from ..models.chat import ChatCompletionRequest, Message
-from ..core.generate import stream_query_rag, query_rag
+from ..core.generate import stream_query_model, query_model
 
 router = APIRouter()
 
@@ -12,11 +12,11 @@ async def chat_completions(request: ChatCompletionRequest):
     if request.messages:
         if request.stream:
             return StreamingResponse(
-                stream_query_rag(request), media_type="text/event-stream"
+                stream_query_model(request), media_type="text/event-stream"
             )
 
         else:
-            response_text = query_rag(request)
+            response_text = query_model(request)
 
             return {
                 "id": "1337",

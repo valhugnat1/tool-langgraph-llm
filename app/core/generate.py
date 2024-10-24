@@ -7,18 +7,20 @@ MODEL_RAG = "llama-3.1-8b-rag"
 MODEL_VANILLA = "llama-3.1-8b-instruct"
 
 
-def query_rag(request):
+def query_model(request):
     llm = MODELService(request.messages)
 
     if request.model == MODEL_RAG:
-        return llm.generate_response(True)["answer"]
+        data_response = llm.generate_response(True)
+        sources = source_clean_string(data_response)
+        return data_response["answer"] + sources
     elif request.model == MODEL_VANILLA:
         return llm.generate_response(False)
     else:
         raise Exception("Model not available")
 
 
-async def stream_query_rag(request: str):
+async def stream_query_model(request: str):
     llm = MODELService(request.messages)
     i = 0
 
