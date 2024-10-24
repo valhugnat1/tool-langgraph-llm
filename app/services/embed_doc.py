@@ -1,4 +1,3 @@
-
 def create_context_prompt(document_content, chunk_text):
     """
     Creates a well-structured prompt for context generation.
@@ -18,3 +17,27 @@ Please give a short succinct context to situate this chunk within the overall do
     return prompt_template.format(
         document=document_content.strip(), chunk=chunk_text.strip()
     )
+
+
+def source_clean_string(list_source):
+    
+    list_context = []
+    sources = "\n\n--\n Sources: \n"
+
+    # Loop over each dictionary in the list_source
+    for context in list_source["context"]:
+        if "url" in context.metadata and "source" in context.metadata:
+            list_context.append(
+                {"url": context.metadata["url"], "source": context.metadata["source"]}
+            )
+
+    # Remove duplicates by converting to a set of tuples and back to a list of dicts
+    unique_data = [dict(t) for t in set(tuple(d.items()) for d in list_context)]
+
+    # Build the sources string
+    for context_metadata in unique_data:
+        sources += (
+            "[" + context_metadata["source"] + "](" + context_metadata["url"] + ")\n"
+        )
+
+    return sources

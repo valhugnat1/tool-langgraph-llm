@@ -1,6 +1,7 @@
 import time
 import json
 from app.services.model import MODELService
+from app.services.embed_doc import source_clean_string
 
 MODEL_RAG = "llama-3.1-8b-rag"
 MODEL_VANILLA = "llama-3.1-8b-instruct"
@@ -23,9 +24,10 @@ async def stream_query_rag(request: str):
 
     if request.model == MODEL_RAG:
         stream = await llm.stream_response(True)
+        chunk_sources = {}
 
         for response_chunk in stream:
-            if "answer" in response_chunk.keys() : 
+            if "answer" in response_chunk.keys():
                 chunk = {
                     "id": i,
                     "object": "chat.completion.chunk",
@@ -36,9 +38,21 @@ async def stream_query_rag(request: str):
                 i += 1
                 yield f"data: {json.dumps(chunk)}\n\n"
 
-            if "context" in response_chunk.keys() : 
+            if "context" in response_chunk.keys():
                 print (response_chunk)
+                sources = source_clean_string(response_chunk)
+                chunk_sources = {
+                    "id": i,
+                    "object": "chat.completion.chunk",
+                    "created": time.time(),
+                    "model": request.model,
+                    "choices": [{"delta": {"content": sources}}],
+                }
 
+            i += 1
+
+        if chunk_sources != {}: 
+            yield f"data: {json.dumps(chunk_sources)}\n\n"
         yield "data: [DONE]\n\n"
 
     elif request.model == MODEL_VANILLA:
