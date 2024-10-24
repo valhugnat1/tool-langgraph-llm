@@ -6,9 +6,9 @@ class Message(BaseModel):
     content: str
 
 class ChatCompletionRequest(BaseModel):
-    model: Optional[str] = "mock-gpt-model"
+    model: Optional[str] = "llama-3.1-8b-instruct"
     messages: List[Message]
-    max_tokens: Optional[int] = 512
+    max_tokens: Optional[int] = 2000
     temperature: Optional[float] = 0.1
     stream: Optional[bool] = False
 

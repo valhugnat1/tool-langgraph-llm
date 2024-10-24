@@ -15,3 +15,4 @@ langchainhub
 boto3 
 unstructured 
 transformers
+rank_bm25

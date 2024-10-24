@@ -3,6 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from app.core.config import get_settings
 
+from langchain_core.runnables import chain
 
 settings = get_settings()
 MODEL_EMBEDDINGS="sentence-transformers/sentence-t5-xxl"
@@ -18,6 +19,18 @@ class VectorStoreDB:
         )
         self.vector_store = self.get_vector_store()
 
+
+    def get_retriever(self):
+
+        @chain
+        def retriever(query: str) :
+            docs, scores = zip(*self.vector_store.similarity_search_with_score(query))
+            for doc, score in zip(docs, scores):
+                doc.metadata["score"] = score
+
+            return docs
+        
+        return retriever
 
     def get_database_connection(self):
         """Establishes a database connection."""

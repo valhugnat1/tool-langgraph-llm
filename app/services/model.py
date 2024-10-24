@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from ..core.config import get_settings
 from ..core.logging import setup_lunary
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -17,7 +17,7 @@ class MODELService:
 
     def __init__(self, messages):
         # Set up the retriever from the vector store and extract the current query from the request.
-        self.retriever = VectorStoreDB().vector_store.as_retriever()
+        self.retriever = VectorStoreDB().get_retriever()
         self.query = str(messages[-1].content)
 
         # Converts the incoming request into a format suitable for LangChain.
@@ -50,7 +50,9 @@ class MODELService:
         # Defines a pipeline that combines the retriever, history, query, prompt template and LLM to generate responses.
         self.rag_template = (
             {
-                "context": self.retriever,
+                "context": RunnablePassthrough.assign(
+                    context=(lambda x: self.format_docs(x["context"]))
+                ),
                 "history": self.str_qa_history,
                 "question": RunnablePassthrough(),
             }
@@ -58,6 +60,13 @@ class MODELService:
             | self.llm
             | StrOutputParser()
         )
+
+        self.rag_runnable_template = RunnableParallel(
+            {"context": self.retriever, "question": RunnablePassthrough()}
+        ).assign(answer=self.rag_template)
+
+    def format_docs(slef, docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
     def object_to_langchain_conv(self, objects, sys_prompt=""):
         """Converts a list of messages (objects) to a LangChain-compatible conversation format."""
@@ -85,13 +94,13 @@ class MODELService:
     def generate_response(self, rag_enable=False):
         """Generates a response (no stream) based on the user's query, either with or without RAG."""
         if rag_enable:
-            return self.rag_template.invoke(self.query)
+            return self.rag_runnable_template.invoke(self.query)
         else:
             return self.llm.invoke(self.conv).content
 
     async def stream_response(self, rag_enable=False):
         """Generates a streaming response based on the user's query, either with or without RAG."""
         if rag_enable:
-            return self.rag_template.stream(self.query)
+            return self.rag_runnable_template.stream(self.query)
         else:
             return self.llm.stream(self.conv)
