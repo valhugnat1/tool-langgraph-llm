@@ -13,20 +13,19 @@ settings = get_settings()
 def get_context_chunks(obj, doc, chunks): 
     context_chunks = []
 
-    # doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
+    doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
 
     for chunk in chunks:
-        # completion = MODELService(
-        #     [
-        #         Message(
-        #             role="user",
-        #             content=create_context_prompt(
-        #                 document_content=doc_with_title, chunk_text=chunk
-        #             ),
-        #         )
-        #     ]
-        # ).generate_response(rag_enable=False)
-        completion = ""
+        completion = MODELService(
+            [
+                Message(
+                    role="user",
+                    content=create_context_prompt(
+                        document_content=doc_with_title, chunk_text=chunk
+                    ),
+                )
+            ]
+        ).generate_response(rag_enable=False)
         context_chunks.append(completion + chunk)
     return context_chunks
 
