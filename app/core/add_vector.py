@@ -10,6 +10,26 @@ from ..models.chat import Message
 settings = get_settings()
 
 
+def get_context_chunks(obj, doc, chunks): 
+    context_chunks = []
+
+    # doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
+
+    for chunk in chunks:
+        # completion = MODELService(
+        #     [
+        #         Message(
+        #             role="user",
+        #             content=create_context_prompt(
+        #                 document_content=doc_with_title, chunk_text=chunk
+        #             ),
+        #         )
+        #     ]
+        # ).generate_response(rag_enable=False)
+        completion = ""
+        context_chunks.append(completion + chunk)
+    return context_chunks
+
 def bucket_to_vectorDB():
     object_store = ObjectStore()
 
@@ -29,29 +49,20 @@ def bucket_to_vectorDB():
         for obj in page.get("Contents", []):
             response = vector_store_DB.check_object_loaded(obj["Key"])
 
-            if response is None:
+            if response is None and obj["Key"] == "arrivee_scw/bienvenue.txt":
                 doc = object_store.get_document(obj)
                 chunks = text_splitter.split_text(doc)
-                context_chunks = []
+                lines = doc.splitlines()  # Split the content into lines
 
-                doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
+                url = lines[0] if len(lines) > 0 else ""
+                name = lines[2] if len(lines) > 2 else ""
 
-                for chunk in chunks:
-                    completion = MODELService(
-                        [Message(
-                                role= "user",
-                                content= create_context_prompt(
-                                    document_content=doc_with_title, chunk_text=chunk
-                                ),
-                            )
-                        ]
-                    ).generate_response(rag_enable=False)
-                    
-                    print (completion)
-                    context_chunks.append(completion + chunk)
+                context_chunks = get_context_chunks(obj, doc, chunks)
 
                 try:
-                    vector_store_DB.add_embeddings_to_store(chunks, context_chunks, obj["Key"])
+                    vector_store_DB.add_embeddings_to_store(
+                        chunks, context_chunks, obj["Key"], url, name
+                    )
                     doc_titles_added.append(obj["Key"])
 
                 except Exception as e:

@@ -21,14 +21,18 @@ Please give a short succinct context to situate this chunk within the overall do
 
 def source_clean_string(list_source):
     
+    if len(list_source["context"]) == 0 : 
+        return ""
+    
     list_context = []
     sources = "\n\n--\n Sources: \n"
 
     # Loop over each dictionary in the list_source
     for context in list_source["context"]:
-        if "url" in context.metadata and "source" in context.metadata:
+        print (context.metadata)
+        if "url" in context.metadata and "name" in context.metadata:
             list_context.append(
-                {"url": context.metadata["url"], "source": context.metadata["source"]}
+                {"url": context.metadata["url"], "name": context.metadata["name"]}
             )
 
     # Remove duplicates by converting to a set of tuples and back to a list of dicts
@@ -37,7 +41,7 @@ def source_clean_string(list_source):
     # Build the sources string
     for context_metadata in unique_data:
         sources += (
-            "[" + context_metadata["source"] + "](" + context_metadata["url"] + ")\n"
+            "[" + context_metadata["name"] + "](" + context_metadata["url"] + ")\n"
         )
 
     return sources

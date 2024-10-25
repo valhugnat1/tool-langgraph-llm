@@ -36,15 +36,15 @@ class MODELService:
 
         # Custom prompt template for the retrieval-augmented generation (RAG) process.
         template = """You are an assistant for question-answering tasks. 
-        Use the following pieces of retrieved context to answer the question. 
-        If you don't know the answer, just say that you don't know. 
-        Use three sentences maximum and keep the answer concise.
-        Context: {context} 
+Use the following pieces of retrieved context to answer the question. 
+If you don't know the answer, just say that you don't know. 
+Use three sentences maximum and keep the answer concise.
+Context: {context} 
 
-        {history} 
-        Human: {question} 
-        AI:
-        """
+{history} 
+Human: {question} 
+AI:
+"""
         self.rag_prompt_custom = PromptTemplate.from_template(template)
 
         # Defines a pipeline that combines the retriever, history, query, prompt template and LLM to generate responses.

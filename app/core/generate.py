@@ -41,7 +41,6 @@ async def stream_query_model(request: str):
                 yield f"data: {json.dumps(chunk)}\n\n"
 
             if "context" in response_chunk.keys():
-                print (response_chunk)
                 sources = source_clean_string(response_chunk)
                 chunk_sources = {
                     "id": i,
