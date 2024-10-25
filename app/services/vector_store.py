@@ -33,7 +33,6 @@ class VectorStoreDB:
 
             return filtered_docs
 
-
         return retriever
 
     def get_database_connection(self):

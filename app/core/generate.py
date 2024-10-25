@@ -52,7 +52,7 @@ async def stream_query_model(request: str):
 
             i += 1
 
-        if chunk_sources != {}: 
+        if chunk_sources != {}:
             yield f"data: {json.dumps(chunk_sources)}\n\n"
         yield "data: [DONE]\n\n"
 

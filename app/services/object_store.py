@@ -18,13 +18,11 @@ class ObjectStore:
             aws_secret_access_key=settings.SCW_SECRET_KEY,
         )
 
-    def get_page_iterator(self): 
-
+    def get_page_iterator(self):
         paginator = self.conn.get_paginator("list_objects_v2")
         return paginator.paginate(Bucket=settings.SCW_BUCKET_NAME)
-    
 
-    def get_document (self, obj): 
+    def get_document(self, obj):
         file_loader = S3FileLoader(
             bucket=settings.SCW_BUCKET_NAME,
             key=obj["Key"],

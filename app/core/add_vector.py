@@ -10,7 +10,7 @@ from ..models.chat import Message
 settings = get_settings()
 
 
-def get_context_chunks(obj, doc, chunks): 
+def get_context_chunks(obj, doc, chunks):
     context_chunks = []
 
     doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
@@ -28,6 +28,7 @@ def get_context_chunks(obj, doc, chunks):
         ).generate_response(rag_enable=False)
         context_chunks.append(completion + chunk)
     return context_chunks
+
 
 def bucket_to_vectorDB():
     object_store = ObjectStore()
@@ -48,7 +49,7 @@ def bucket_to_vectorDB():
         for obj in page.get("Contents", []):
             response = vector_store_DB.check_object_loaded(obj["Key"])
 
-            if response is None and obj["Key"] == "arrivee_scw/bienvenue.txt":
+            if response is None :
                 doc = object_store.get_document(obj)
                 chunks = text_splitter.split_text(doc)
                 lines = doc.splitlines()  # Split the content into lines
