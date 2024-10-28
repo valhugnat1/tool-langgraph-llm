@@ -74,7 +74,7 @@ Assistant:
     def format_docs(slef, docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
-    def object_to_langchain_conv(self, objects, sys_prompt=""):
+    def object_to_langchain_conv(self, objects, sys_prompt="Don't call any tool."):
         """Converts a list of messages (objects) to a LangChain-compatible conversation format."""
         langchain_conv = [SystemMessage(content=sys_prompt)] if sys_prompt else []
 
