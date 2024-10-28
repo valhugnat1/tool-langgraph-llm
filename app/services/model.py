@@ -38,12 +38,12 @@ class MODELService:
         template = """You are an assistant for question-answering tasks. 
 Use the following pieces of retrieved context to answer the question. 
 If you don't know the answer, just say that you don't know. 
-Use three sentences maximum and keep the answer concise.
+Don't call any tool.
 Context: {context} 
 
 {history} 
 Human: {question} 
-AI:
+Assistant:
 """
         self.rag_prompt_custom = PromptTemplate.from_template(template)
 
@@ -54,16 +54,22 @@ AI:
                     context=(lambda x: self.format_docs(x["context"]))
                 ),
                 "history": self.str_qa_history,
-                "question": RunnablePassthrough(),
+                "question": self.get_query,
             }
             | self.rag_prompt_custom
             | self.llm
             | StrOutputParser()
         )
 
-        self.rag_runnable_template = RunnableParallel(
-            {"context": self.retriever, "question": RunnablePassthrough()}
-        ).assign(answer=self.rag_template)
+        self.rag_runnable_template = (
+            RunnableParallel(
+                {
+                    "context": self.retriever,
+                    "question": RunnablePassthrough()
+                }
+            )
+            | RunnablePassthrough.assign(answer=self.rag_template)
+        )
 
     def format_docs(slef, docs):
         return "\n\n".join(doc.page_content for doc in docs)
@@ -78,18 +84,22 @@ AI:
             else AIMessage(content=obj.content)
             for obj in objects
         ]
+        
         return langchain_conv
 
-    def str_qa_history(self, query):
+    def str_qa_history(self, elem):
         """Convert a list of HumanMessage and AIMessage into a formatted string for use in the prompt."""
         return "\n".join(
             [
                 f"Human: {msg.content}"
                 if isinstance(msg, HumanMessage)
-                else f"AI: {msg.content}"
+                else f"Assistant: {msg.content}"
                 for msg in self.qa_history
             ]
         )
+    
+    def get_query (self, elem): 
+        return self.query 
 
     def generate_response(self, rag_enable=False):
         """Generates a response (no stream) based on the user's query, either with or without RAG."""

@@ -28,16 +28,16 @@ def source_clean_string(list_source):
 
     # Loop over each dictionary in the list_source
     for context in list_source["context"]:
-        
         if "url" in context.metadata and "name" in context.metadata:
-            if len(context.metadata["name"]) > 50: # Issue in database, just temporary filter 
+            if (
+                len(context.metadata["name"]) > 50
+            ):  # Issue in database, just temporary filter
                 file_name = context.metadata["source"][:-4]
-            else :
+            else:
                 file_name = context.metadata["name"]
 
-
             list_context.append(
-                {"url": context.metadata["url"].split(' ')[0], "name": file_name}
+                {"url": context.metadata["url"].split(" ")[0], "name": file_name}
             )
 
     # Remove duplicates by converting to a set of tuples and back to a list of dicts
