@@ -8,6 +8,7 @@ from langchain_core.runnables import chain
 
 settings = get_settings()
 MODEL_EMBEDDINGS = "sentence-transformers/sentence-t5-xxl"
+SCORE_SEUIL = 0.3
 
 
 class VectorStoreDB:
@@ -25,7 +26,7 @@ class VectorStoreDB:
         @chain
         def retriever(query):
             docs, scores = zip(*self.vector_store.similarity_search_with_score(query))
-            filtered_docs = [doc for doc, score in zip(docs, scores) if score <= 0.2]
+            filtered_docs = [doc for doc, score in zip(docs, scores) if score <= SCORE_SEUIL]
 
             # Only store scores for documents that pass the threshold
             for doc in filtered_docs:
@@ -68,6 +69,7 @@ class VectorStoreDB:
 
     def add_object_key(self, obj_key, metadata_list):
         """Inserts a new object key into the 'object_loaded' table."""
+
 
         try:
             with self.conn.cursor() as cur:

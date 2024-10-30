@@ -10,12 +10,16 @@ MODEL_VANILLA = "llama-3.1-8b-instruct"
 def query_model(request):
     llm = MODELService(request.messages)
 
-    if request.model == MODEL_RAG:
+    if (
+        request.model == MODEL_VANILLA
+        or "Create a concise, 3-5 word title with an emoji as a title for the prompt in the given language."
+        in str(request.messages[-1].content)
+    ):
+        return llm.generate_response(False)
+    elif request.model == MODEL_RAG:
         data_response = llm.generate_response(True)
         sources = source_clean_string(data_response)
         return data_response["answer"] + sources
-    elif request.model == MODEL_VANILLA:
-        return llm.generate_response(False)
     else:
         raise Exception("Model not available")
 

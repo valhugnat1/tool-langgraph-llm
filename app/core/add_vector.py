@@ -8,12 +8,13 @@ from ..models.chat import Message
 
 
 settings = get_settings()
+BATCH_SIZE=10
 
 
-def get_context_chunks(obj, doc, chunks):
+def get_context_chunks(doc_key, doc, chunks):
     context_chunks = []
 
-    doc_with_title = "Page title: " + obj["Key"] + "\n" + doc
+    doc_with_title = "Page title: " + doc_key + "\n" + doc
 
     for chunk in chunks:
         completion = MODELService(
@@ -30,7 +31,38 @@ def get_context_chunks(obj, doc, chunks):
     return context_chunks
 
 
+def get_context_doc(doc_key, doc, chunks):
+    context_chunks = []
+
+    doc_with_title = "Page title: " + doc_key + "\n" + doc
+
+    completion = MODELService(
+        [
+            Message(
+                role="user",
+                content=create_context_prompt(document_content=doc_with_title),
+            )
+        ]
+    ).generate_response(rag_enable=False)
+
+    for chunk in chunks:
+        context_chunks.append(completion + chunk)
+
+    return context_chunks
+
 def bucket_to_vectorDB():
+    object_store = ObjectStore()
+    doc_titles_added = []
+
+    for page in object_store.get_page_iterator():
+        for obj in page.get("Contents", []):
+            doc_titles_added.append(doc_to_vectorDB(obj["key"]))
+
+    return doc_titles_added
+
+
+def doc_to_vectorDB(doc_key):
+    vector_store_DB = VectorStoreDB()
     object_store = ObjectStore()
 
     text_splitter = RecursiveCharacterTextSplitter(
@@ -41,31 +73,29 @@ def bucket_to_vectorDB():
         is_separator_regex=False,
     )
 
-    doc_titles_added = []
+    response = vector_store_DB.check_object_loaded(doc_key)
 
-    vector_store_DB = VectorStoreDB()
+    if response is None:
+        doc = object_store.get_document(doc_key)
+        chunks = text_splitter.split_text(doc)
 
-    for page in object_store.get_page_iterator():
-        for obj in page.get("Contents", []):
-            response = vector_store_DB.check_object_loaded(obj["Key"])
+        url = doc.split("|")[0]
+        name = doc.split("|")[1]
 
-            if response is None :
-                doc = object_store.get_document(obj)
-                chunks = text_splitter.split_text(doc)
-                lines = doc.splitlines()  # Split the content into lines
+        context = get_context_doc(doc_key, doc, chunks)
+        print ("Adding to vector store: ", doc_key, " with ", len(chunks), " chunks")
+        for i in range(0, len(chunks), BATCH_SIZE):
+            print ("Batches: ", i, " to ", i + BATCH_SIZE, " of ", len(chunks), " chunks")
 
-                url = lines[0] if len(lines) > 0 else ""
-                name = lines[2] if len(lines) > 2 else ""
+            batch_chunks = chunks[i:i + BATCH_SIZE]  
+            batch_context = context[i:i + BATCH_SIZE]
 
-                context_chunks = get_context_chunks(obj, doc, chunks)
+            try:
+                vector_store_DB.add_embeddings_to_store(
+                    batch_chunks, batch_context, doc_key, url, name
+                )
+                pass
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
-                try:
-                    vector_store_DB.add_embeddings_to_store(
-                        chunks, context_chunks, obj["Key"], url, name
-                    )
-                    doc_titles_added.append(obj["Key"])
-
-                except Exception as e:
-                    print(f"An error occurred: {e}")
-
-    return doc_titles_added
+    return doc_key

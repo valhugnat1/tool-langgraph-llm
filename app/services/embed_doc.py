@@ -1,9 +1,16 @@
-def create_context_prompt(document_content, chunk_text):
+def create_context_prompt(document_content, chunk_text=""):
     """
     Creates a well-structured prompt for context generation.
     """
-
-    prompt_template = """Here is the chunk we want to situate within the whole document 
+    if chunk_text=="":
+        prompt_template = """Here is the chunk we want to situate within the whole document 
+<document>
+{document}
+</document>
+Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else. 
+."""
+    else:
+        prompt_template = """Here is the chunk we want to situate within the whole document 
 <document>
 {document}
 </document>

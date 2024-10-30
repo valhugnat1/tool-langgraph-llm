@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from ..core.add_vector import bucket_to_vectorDB
+from ..core.add_vector import bucket_to_vectorDB, doc_to_vectorDB
+from ..models.file import DocRequest
 router = APIRouter()
 
 
@@ -13,4 +14,17 @@ def data_loader():
         "status": "done", 
         "number_docs": len (doc_titles_added),
         "doc_titles_added": doc_titles_added
+    }
+
+@router.post("/doc_to_vectordb")
+def doc_to_vectordb(request: DocRequest):
+
+    res = []
+    for key in request.keys:
+
+        res.append(doc_to_vectorDB(doc_key=key))
+
+    return {
+        "status": "done",
+        "result": res
     }
