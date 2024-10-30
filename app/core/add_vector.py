@@ -8,7 +8,7 @@ from ..models.chat import Message
 
 
 settings = get_settings()
-BATCH_SIZE=10
+BATCH_SIZE = 10
 
 
 def get_context_chunks(doc_key, doc, chunks):
@@ -25,7 +25,9 @@ def get_context_chunks(doc_key, doc, chunks):
                         document_content=doc_with_title, chunk_text=chunk
                     ),
                 )
-            ]
+            ],
+            temperature=0.2,
+            max_tokens=2000,
         ).generate_response(rag_enable=False)
         context_chunks.append(completion + chunk)
     return context_chunks
@@ -42,13 +44,16 @@ def get_context_doc(doc_key, doc, chunks):
                 role="user",
                 content=create_context_prompt(document_content=doc_with_title),
             )
-        ]
+        ],
+        temperature=0.2,
+        max_tokens=2000,
     ).generate_response(rag_enable=False)
 
     for chunk in chunks:
         context_chunks.append(completion + chunk)
 
     return context_chunks
+
 
 def bucket_to_vectorDB():
     object_store = ObjectStore()
@@ -83,12 +88,14 @@ def doc_to_vectorDB(doc_key):
         name = doc.split("|")[1]
 
         context = get_context_doc(doc_key, doc, chunks)
-        print ("Adding to vector store: ", doc_key, " with ", len(chunks), " chunks")
+        print("Adding to vector store: ", doc_key, " with ", len(chunks), " chunks")
         for i in range(0, len(chunks), BATCH_SIZE):
-            print ("Batches: ", i, " to ", i + BATCH_SIZE, " of ", len(chunks), " chunks")
+            print(
+                "Batches: ", i, " to ", i + BATCH_SIZE, " of ", len(chunks), " chunks"
+            )
 
-            batch_chunks = chunks[i:i + BATCH_SIZE]  
-            batch_context = context[i:i + BATCH_SIZE]
+            batch_chunks = chunks[i : i + BATCH_SIZE]
+            batch_context = context[i : i + BATCH_SIZE]
 
             try:
                 vector_store_DB.add_embeddings_to_store(

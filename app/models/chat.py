@@ -8,7 +8,7 @@ class Message(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: Optional[str] = "llama-3.1-8b-instruct"
     messages: List[Message]
-    max_tokens: Optional[int] = 2000
+    max_tokens: Optional[int] = None
     temperature: Optional[float] = 0.1
     stream: Optional[bool] = False
 

@@ -7,12 +7,13 @@ MODEL_RAG = "llama-3.1-8b-rag"
 MODEL_VANILLA = "llama-3.1-8b-instruct"
 
 
+# No stream generation 
 def query_model(request):
-    llm = MODELService(request.messages)
+    llm = MODELService(request.messages, request.temperature, request.max_tokens)
 
     if (
         request.model == MODEL_VANILLA
-        or "Create a concise, 3-5 word title with an emoji as a title for the prompt in the given language."
+        or "Create a concise, 3-5 word title with an emoji as a title for the prompt in the given language." # Specific case for title generation
         in str(request.messages[-1].content)
     ):
         return llm.generate_response(False)
@@ -24,11 +25,28 @@ def query_model(request):
         raise Exception("Model not available")
 
 
+# Stream generation
 async def stream_query_model(request: str):
-    llm = MODELService(request.messages)
+    llm = MODELService(request.messages, request.temperature, request.max_tokens)
     i = 0
 
-    if request.model == MODEL_RAG:
+    if request.model == MODEL_VANILLA:
+        stream = await llm.stream_response(False)
+
+        for response_chunk in stream:
+            chunk = {
+                "id": i,
+                "object": "chat.completion.chunk",
+                "created": time.time(),
+                "model": request.model,
+                "choices": [{"delta": {"content": response_chunk.content}}],
+            }
+            i += 1
+            yield f"data: {json.dumps(chunk)}\n\n"
+
+        yield "data: [DONE]\n\n"
+    
+    elif request.model == MODEL_RAG:
         stream = await llm.stream_response(True)
         chunk_sources = {}
 
@@ -59,22 +77,6 @@ async def stream_query_model(request: str):
         if chunk_sources != {}:
             yield f"data: {json.dumps(chunk_sources)}\n\n"
         yield "data: [DONE]\n\n"
-
-    elif request.model == MODEL_VANILLA:
-        stream = await llm.stream_response(False)
-
-        for response_chunk in stream:
-            chunk = {
-                "id": i,
-                "object": "chat.completion.chunk",
-                "created": time.time(),
-                "model": request.model,
-                "choices": [{"delta": {"content": response_chunk.content}}],
-            }
-            i += 1
-            yield f"data: {json.dumps(chunk)}\n\n"
-
-        yield "data: [DONE]\n\n"
-
+        
     else:
         raise Exception("Model not available")
