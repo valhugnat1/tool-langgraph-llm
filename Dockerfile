@@ -26,4 +26,4 @@ EXPOSE 8000
 ENV PORT 8000
 
 # Run the application
-CMD ["python", "server_langchain.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
