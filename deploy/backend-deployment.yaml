@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: rg.fr-par.scw.cloud/namespace-brave-yonath/server_poc_1:latest
+          ports:
+            - containerPort: 8000  # change if your backend uses another port
