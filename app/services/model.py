@@ -15,7 +15,7 @@ MODEL_BASE_LLM = "llama-3.1-8b-instruct"
 class MODELService:
     """Service class responsible for handling interaction with a question-answering model."""
 
-    def __init__(self, messages, temperature, max_tokens):
+    def __init__(self, messages, temperature=0.1, max_tokens=None):
         # Set up the retriever from the vector store and extract the current query from the request.
         self.retriever = VectorStoreDB().get_retriever()
         self.query = str(messages[-1].content)

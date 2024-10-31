@@ -1,24 +1,23 @@
 from fastapi import APIRouter
+from ..core.models import query_model
 
 router = APIRouter()
 
 
 @router.get("/models")
 async def models_list():
+
+    print (query_model())
+
     return {
         "object": "list",
         "data": [
             {
-                "id": "llama-3.1-8b-rag",
+                "id": model_info[0],
                 "object": "model",
                 "created": 1686935008,
                 "owned_by": "organization-owner",
-            },
-            {
-                "id": "llama-3.1-8b-instruct",
-                "object": "model",
-                "created": 1686935008,
-                "owned_by": "organization-owner",
-            },
+            }
+            for model_info in query_model()
         ],
     }

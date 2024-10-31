@@ -67,6 +67,17 @@ class VectorStoreDB:
             response = cur.fetchone()
         return response
 
+    def get_models_table(self):
+
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "SELECT model_name, model_type, group_data, metadata FROM models",
+            )
+            response = cur.fetchall()
+        print (response)
+        return response
+
+
     def add_object_key(self, obj_key, metadata_list):
         """Inserts a new object key into the 'object_loaded' table."""
 
