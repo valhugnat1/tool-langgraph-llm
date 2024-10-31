@@ -9,13 +9,12 @@ from app.services.vector_store import VectorStoreDB
 
 # Fetches application settings and sets the LLM model to use.
 settings = get_settings()
-MODEL_BASE_LLM = "llama-3.1-8b-instruct"
 
 
 class MODELService:
     """Service class responsible for handling interaction with a question-answering model."""
 
-    def __init__(self, messages, temperature=0.1, max_tokens=None):
+    def __init__(self, messages, temperature=0.1, max_tokens=None, base_model="llama-3.1-8b-instruct"):
         # Set up the retriever from the vector store and extract the current query from the request.
         self.retriever = VectorStoreDB().get_retriever()
         self.query = str(messages[-1].content)
@@ -32,7 +31,7 @@ class MODELService:
         self.llm = ChatOpenAI(
             base_url=settings.SCW_GENERATIVE_APIs_ENDPOINT,
             api_key=settings.SCW_SECRET_KEY,
-            model=MODEL_BASE_LLM,
+            model=base_model,
             temperature=temperature,
             max_tokens=max_tokens,
             callbacks=[setup_lunary()],

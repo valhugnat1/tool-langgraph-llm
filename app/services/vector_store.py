@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2.extras import DictCursor
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from app.core.config import get_settings
@@ -69,9 +70,9 @@ class VectorStoreDB:
 
     def get_models_table(self):
 
-        with self.conn.cursor() as cur:
+        with self.conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute(
-                "SELECT model_name, model_type, group_data, metadata FROM models",
+                "SELECT model_name, model_type, group_data, metadata, base_model FROM models",
             )
             response = cur.fetchall()
         print (response)

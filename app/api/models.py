@@ -13,7 +13,7 @@ async def models_list():
         "object": "list",
         "data": [
             {
-                "id": model_info[0],
+                "id": model_info["model_name"],
                 "object": "model",
                 "created": 1686935008,
                 "owned_by": "organization-owner",
