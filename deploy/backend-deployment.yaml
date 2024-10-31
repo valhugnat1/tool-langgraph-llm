@@ -15,5 +15,6 @@ spec:
       containers:
         - name: backend
           image: rg.fr-par.scw.cloud/namespace-brave-yonath/server_poc_1:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000  # change if your backend uses another port

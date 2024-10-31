@@ -4,8 +4,8 @@ from app.services.model import MODELService
 from app.services.embed_doc import source_clean_string
 from ..services.vector_store import VectorStoreDB
 
-def get_model_info (model): 
-
+# Get the list of models from the database
+def get_model_info (model):  
     model_list = VectorStoreDB().get_models_table()
 
     for model_info in model_list:
